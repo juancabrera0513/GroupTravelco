@@ -1,6 +1,5 @@
 import React, { useContext } from "react";
 import { LanguageContext } from "../context/LanguageContext";
-import translations from "../i18n";
 
 export default function Navbar() {
   const { language, switchLanguage } = useContext(LanguageContext);
