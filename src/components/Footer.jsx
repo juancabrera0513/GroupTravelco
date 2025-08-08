@@ -1,72 +1,68 @@
-import React, { useContext } from "react";
-import { LanguageContext } from "../context/LanguageContext";
-import translations from "../i18n";
+import React from "react";
 import { Link } from "react-router-dom";
 import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa";
 
 export default function Footer() {
-  const { language } = useContext(LanguageContext);
-  const t = translations.footer[language];
-
-  const links = {
-    es: ["Inicio", "Servicios", "Contacto", "Preguntas"],
-    en: ["Home", "Services", "Contact", "FAQ"],
-    fr: ["Accueil", "Services", "Contact", "FAQ"],
-  };
-
-  const sections = ["#home", "#services", "#contacto", "/faq"];
+  const links = [
+    { label: "Home", href: "#home" },
+    { label: "Services", href: "#services" },
+    { label: "Contact", href: "#contact" },
+    { label: "FAQ", to: "/faq" },
+  ];
 
   return (
     <footer className="bg-primary text-white py-10 px-6 text-center" data-aos="fade-up">
       <div className="max-w-6xl mx-auto">
-        {/* Enlaces */}
+        {/* Nav Links */}
         <div className="mb-6 flex justify-center flex-wrap gap-6 text-sm font-medium">
-          {links[language].map((label, idx) =>
-            sections[idx].startsWith("#") ? (
-              <a key={idx} href={sections[idx]} className="hover:underline">
-                {label}
-              </a>
-            ) : (
-              <Link key={idx} to={sections[idx]} className="hover:underline">
-                {label}
+          {links.map((item, idx) =>
+            item.to ? (
+              <Link key={idx} to={item.to} className="hover:underline">
+                {item.label}
               </Link>
+            ) : (
+              <a key={idx} href={item.href} className="hover:underline">
+                {item.label}
+              </a>
             )
           )}
         </div>
 
-        {/* Redes sociales */}
+        {/* Social */}
         <div className="flex justify-center gap-6 mb-6 text-xl" data-aos="zoom-in">
           <a
-            href="https://www.facebook.com"
+            href="https://www.facebook.com/yourpage"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-transform hover:scale-125 hover:text-white"
+            className="transition-transform hover:scale-125 hover:text-accent"
             aria-label="Facebook"
           >
             <FaFacebookF />
           </a>
           <a
-            href="https://www.instagram.com"
+            href="https://www.instagram.com/yourpage"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-transform hover:scale-125 hover:text-white"
+            className="transition-transform hover:scale-125 hover:text-accent"
             aria-label="Instagram"
           >
             <FaInstagram />
           </a>
           <a
-            href="https://wa.me/18095551234"
+            href="https://wa.me/13195551234" // Pon tu número real aquí
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-transform hover:scale-125 hover:text-white"
+            className="transition-transform hover:scale-125 hover:text-accent"
             aria-label="WhatsApp"
           >
             <FaWhatsapp />
           </a>
         </div>
 
-        {/* Copyright */}
-        <p className="text-sm opacity-80">{t}</p>
+        {/* Local SEO and Copyright */}
+        <p className="text-sm opacity-80">
+          Serving the St. Louis, MO 63123 area & all the Midwest · &copy; {new Date().getFullYear()} Group Travel Co
+        </p>
       </div>
     </footer>
   );

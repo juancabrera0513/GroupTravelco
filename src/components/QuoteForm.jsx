@@ -1,227 +1,224 @@
-import React, { useRef, useContext, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import emailjs from "emailjs-com";
-import { LanguageContext } from "../context/LanguageContext";
 
-export default function QuoteForm() {
-  const form = useRef();
-  const { language } = useContext(LanguageContext);
-  const [activeTab, setActiveTab] = useState("hotel");
-  const [arrivalDate, setArrivalDate] = useState("");
-  const [departureDate, setDepartureDate] = useState("");
-  const [nights, setNights] = useState("");
+export default function TripInquirySection() {
+  const [open, setOpen] = useState(false);
+  const formRef = useRef(null);
+  const [status, setStatus] = useState({ type: "", msg: "" });
 
-  useEffect(() => {
-    if (arrivalDate && departureDate) {
-      const arrival = new Date(arrivalDate);
-      const departure = new Date(departureDate);
-      const diffTime = departure - arrival;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setNights(diffDays >= 0 ? diffDays : "");
-    }
-  }, [arrivalDate, departureDate]);
+  const sheetURL = "https://sheet.best/api/sheets/YOUR_SHEET_ID"; // opcional
 
-  const labels = {
-    es: {
-      title: "Cotiza tu Viaje con Nosotros",
-      tabs: ["Hotel", "Tour", "Paquete"],
-      destination: "Destino, hotel o punto de interés",
-      arrival: "Fecha de llegada",
-      nights: "Cantidad de noches",
-      departure: "Fecha de salida",
-      rooms: "Habitaciones",
-      adults: "Adultos",
-      children: "Niños",
-      country: "País de residencia",
-      notes: "Notas adicionales",
-      activities: "Actividades o lugares que deseas incluir",
-      duration: "Duración del tour (días)",
-      includeFlight: "¿Deseas incluir vuelos?",
-      includeHotel: "¿Deseas incluir hotel?",
-      includeInsurance: "¿Deseas incluir seguro de viaje?",
-      button: "Enviar Solicitud",
-    },
-    en: {
-      title: "Get a Quote for Your Trip",
-      tabs: ["Hotel", "Tour", "Package"],
-      destination: "Destination, hotel, or point of interest",
-      arrival: "Arrival date",
-      nights: "Number of nights",
-      departure: "Departure date",
-      rooms: "Rooms",
-      adults: "Adults",
-      children: "Children",
-      country: "Country of residence",
-      notes: "Additional notes",
-      activities: "Activities or places you want to include",
-      duration: "Tour duration (days)",
-      includeFlight: "Do you want to include flights?",
-      includeHotel: "Do you want to include a hotel?",
-      includeInsurance: "Do you want to include travel insurance?",
-      button: "Submit Request",
-    },
-    fr: {
-      title: "Demandez un Devis pour Votre Voyage",
-      tabs: ["Hôtel", "Tour", "Forfait"],
-      destination: "Destination, hôtel ou point d'intérêt",
-      arrival: "Date d'arrivée",
-      nights: "Nombre de nuits",
-      departure: "Date de départ",
-      rooms: "Chambres",
-      adults: "Adultes",
-      children: "Enfants",
-      country: "Pays de résidence",
-      notes: "Remarques supplémentaires",
-      activities: "Activités ou lieux à inclure",
-      duration: "Durée du tour (jours)",
-      includeFlight: "Souhaitez-vous inclure des vols ?",
-      includeHotel: "Souhaitez-vous inclure un hôtel ?",
-      includeInsurance: "Souhaitez-vous inclure une assurance voyage ?",
-      button: "Envoyer la Demande",
-    },
-  };
-
-  const t = labels[language];
-  const sheetURL = "https://sheet.best/api/sheets/TU_ID_AQUI";
-
-  const sendEmail = (e) => {
+  const send = async (e) => {
     e.preventDefault();
-    const formData = new FormData(form.current);
-    const formObject = Object.fromEntries(formData.entries());
+    setStatus({ type: "loading", msg: "Sending..." });
 
-    formObject.incluir_vuelo = formData.get("incluir_vuelo") ? "Sí" : "No";
-    formObject.incluir_hotel = formData.get("incluir_hotel") ? "Sí" : "No";
-    formObject.incluir_seguro = formData.get("incluir_seguro") ? "Sí" : "No";
+    const formData = new FormData(formRef.current);
+    const data = Object.fromEntries(formData.entries());
+    if (!data.name || !data.email || !data.phone) {
+      setStatus({ type: "error", msg: "Please fill name, email, and phone." });
+      return;
+    }
 
-    formObject.fecha = new Date().toLocaleDateString();
-    formObject.tipo = activeTab;
-    formObject.noches = nights;
+    data.date_submitted = new Date().toISOString();
+    data.source = "Trip Inquiry Modal";
 
-    emailjs
-      .send("tu_service_id", "tu_template_id", formObject, "tu_public_key")
-      .then(() => console.log("Correo enviado correctamente"))
-      .catch(() => alert("Error al enviar el email."));
+    try {
+      await emailjs.send(
+        "YOUR_SERVICE_ID",
+        "YOUR_TEMPLATE_ID",
+        data,
+        "YOUR_PUBLIC_KEY"
+      );
 
-    fetch(sheetURL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formObject),
-    })
-      .then(() => {
-        alert("Cotización enviada con éxito.");
-        form.current.reset();
-        setArrivalDate("");
-        setDepartureDate("");
-        setNights("");
-      })
-      .catch(() => alert("Error al guardar en Google Sheets."));
+      if (sheetURL && !sheetURL.includes("YOUR_SHEET_ID")) {
+        await fetch(sheetURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+      }
+
+      setStatus({ type: "success", msg: "Thanks! We’ll reach out shortly." });
+      formRef.current?.reset();
+      setTimeout(() => {
+        setOpen(false);
+        setStatus({ type: "", msg: "" });
+      }, 1200);
+    } catch (err) {
+      setStatus({ type: "error", msg: "Couldn’t send. Please try again." });
+    }
   };
 
   return (
-    <section id="contacto" className="py-20 px-4 bg-gray-100" data-aos="fade-up">
-      <h2 className="text-3xl font-bold mb-8 text-center">{t.title}</h2>
-
-      <div className="flex justify-center gap-4 mb-10">
-        {["hotel", "tour", "paquete"].map((key, index) => (
+    <>
+      {/* CTA con fondo */}
+      <section
+        id="contact"
+        className="relative py-24 px-6"
+        data-aos="fade-up"
+      >
+        <div
+          className="absolute inset-0 bg-center bg-cover"
+          style={{ backgroundImage: "url('/images/cta.jpg')" }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+        <div className="relative max-w-4xl mx-auto text-center text-white">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to Plan Your Next Unforgettable Getaway?
+          </h2>
+          <p className="text-lg md:text-xl leading-relaxed mb-8">
+            Whether you're dreaming of a group trip to Mexico or a personalized Caribbean escape, let's make it happen. Start planning your stress-free, all-inclusive vacation today.
+          </p>
           <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`px-5 py-2 rounded-full font-semibold transition ${
-              activeTab === key
-                ? "bg-primary text-white"
-                : "bg-white text-primary border border-primary"
-            }`}
+            onClick={() => setOpen(true)}
+            className="inline-block bg-[#F2BE22] text-[#2b2973] font-semibold px-6 py-3 rounded-lg hover:opacity-95 transition"
           >
-            {t.tabs[index]}
+            Start your Trip Inquiry
           </button>
-        ))}
-      </div>
+        </div>
+      </section>
 
-      <form ref={form} onSubmit={sendEmail} className="max-w-3xl mx-auto grid gap-6">
-        <input type="text" name="destino" placeholder={t.destination} className="p-4 rounded-lg border border-gray-300" required />
+      {/* Modal */}
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h3 className="text-xl font-bold text-[#2b2973]">Trip Inquiry</h3>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
 
-        {activeTab === "hotel" && (
-          <>
-            <div className="grid md:grid-cols-2 gap-4">
+            <form ref={formRef} onSubmit={send} className="p-6 grid gap-5">
+              {/* Básico */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Full name*"
+                  className="p-4 rounded-lg border border-gray-300"
+                  required
+                />
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone*"
+                  className="p-4 rounded-lg border border-gray-300"
+                  required
+                />
+              </div>
               <input
-                type="date"
-                name="llegada"
+                type="email"
+                name="email"
+                placeholder="Email*"
                 className="p-4 rounded-lg border border-gray-300"
                 required
-                onChange={(e) => setArrivalDate(e.target.value)}
               />
-              <input
-                type="text"
-                name="noches"
-                value={nights}
-                placeholder={t.nights}
-                className="p-4 rounded-lg border border-gray-100 bg-gray-200"
-                readOnly
+
+              {/* Contexto general */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  name="destination"
+                  placeholder="Destination (Mexico, DR, Jamaica, etc.)"
+                  className="p-4 rounded-lg border border-gray-300"
+                />
+                <input
+                  type="text"
+                  name="group_size"
+                  placeholder="Group size (e.g. 6 adults, 2 kids)"
+                  className="p-4 rounded-lg border border-gray-300"
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  name="date_window"
+                  placeholder="Dates or window (e.g. Jun 10–17)"
+                  className="p-4 rounded-lg border border-gray-300"
+                />
+                <select
+                  name="trip_type"
+                  className="p-4 rounded-lg border border-gray-300"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Trip type (optional)
+                  </option>
+                  <option value="group">Group</option>
+                  <option value="family">Family</option>
+                  <option value="romance">Romance</option>
+                  <option value="friends">Friends</option>
+                  <option value="corporate">Corporate</option>
+                  <option value="solo">Solo</option>
+                </select>
+              </div>
+
+              <textarea
+                name="message"
+                placeholder="Tell us briefly about budget, resort style, or any must-haves."
+                className="p-4 rounded-lg border border-gray-300"
+                rows="4"
               />
-            </div>
-            <input
-              type="date"
-              name="salida"
-              className="p-4 rounded-lg border border-gray-300"
-              required
-              onChange={(e) => setDepartureDate(e.target.value)}
-              min={arrivalDate}
-            />
-            <div className="grid md:grid-cols-2 gap-4">
-              <input type="number" name="habitaciones" placeholder={t.rooms} className="p-4 rounded-lg border border-gray-300" min="1" required />
-              <input type="text" name="pais" placeholder={t.country} className="p-4 rounded-lg border border-gray-300" required />
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <input type="number" name="adultos" placeholder={t.adults} className="p-4 rounded-lg border border-gray-300" min="1" required />
-              <input type="number" name="ninos" placeholder={t.children} className="p-4 rounded-lg border border-gray-300" min="0" />
-            </div>
-          </>
-        )}
 
-        {activeTab === "tour" && (
-          <>
-            <input type="text" name="actividades" placeholder={t.activities} className="p-4 rounded-lg border border-gray-300" />
-            <input type="number" name="duracion" placeholder={t.duration} className="p-4 rounded-lg border border-gray-300" min="1" required />
-            <input type="text" name="pais" placeholder={t.country} className="p-4 rounded-lg border border-gray-300" required />
-            <div className="grid md:grid-cols-2 gap-4">
-              <input type="number" name="adultos" placeholder={t.adults} className="p-4 rounded-lg border border-gray-300" min="1" required />
-              <input type="number" name="ninos" placeholder={t.children} className="p-4 rounded-lg border border-gray-300" min="0" />
-            </div>
-          </>
-        )}
+              {/* anti-bot */}
+              <input type="text" name="company" className="hidden" tabIndex="-1" autoComplete="off" />
 
-        {activeTab === "paquete" && (
-          <>
-            <div className="grid md:grid-cols-2 gap-4">
-              <input type="date" name="llegada" className="p-4 rounded-lg border border-gray-300" required />
-              <input type="date" name="salida" className="p-4 rounded-lg border border-gray-300" required />
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" name="incluir_vuelo" className="accent-primary" />
-                {t.includeFlight}
+              {/* Consentimiento */}
+              <label className="flex items-start gap-3 text-sm text-gray-600">
+                <input type="checkbox" name="consent" className="mt-1 accent-[#2b2973]" required />
+                I agree to be contacted by Group Travel Co about my inquiry.
               </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" name="incluir_hotel" className="accent-primary" />
-                {t.includeHotel}
-              </label>
-            </div>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="incluir_seguro" className="accent-primary" />
-              {t.includeInsurance}
-            </label>
-            <div className="grid md:grid-cols-2 gap-4">
-              <input type="number" name="adultos" placeholder={t.adults} className="p-4 rounded-lg border border-gray-300" min="1" required />
-              <input type="number" name="ninos" placeholder={t.children} className="p-4 rounded-lg border border-gray-300" min="0" />
-            </div>
-            <input type="text" name="pais" placeholder={t.country} className="p-4 rounded-lg border border-gray-300" required />
-          </>
-        )}
 
-        <textarea name="notas" placeholder={t.notes} className="p-4 rounded-lg border border-gray-300" rows="4"></textarea>
-        <button type="submit" className="bg-primary hover:bg-accent text-white py-3 rounded-lg text-lg transition duration-300">
-          {t.button}
-        </button>
-      </form>
-    </section>
+              <div className="flex items-center gap-3">
+                <button
+                  type="submit"
+                  className="bg-[#2b2973] hover:bg-[#221f5c] text-white py-3 px-6 rounded-lg transition"
+                  disabled={status.type === "loading"}
+                >
+                  {status.type === "loading" ? "Sending..." : "Send Request"}
+                </button>
+                <button
+                  type="button"
+                  className="text-gray-600 hover:text-gray-800"
+                  onClick={() => setOpen(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {status.msg && (
+                <p
+                  className={`text-sm ${
+                    status.type === "error" ? "text-red-600" : "text-green-700"
+                  }`}
+                >
+                  {status.msg}
+                </p>
+              )}
+
+              <p className="text-center text-xs text-gray-500">
+                Based in St. Louis, MO · Serving the Midwest & beyond
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -2,10 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Puedes agregar estilos globales aquí si quieres */
+/* Global font */
 body {
   font-family: 'Inter', sans-serif;
+  /* Puedes agregar color de fondo aquí si quieres */
+  /* background-color: #f7fafc; */
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -20,14 +28,10 @@ body {
 .animate-fadeIn {
   animation: fadeIn 1s ease-out forwards;
 }
+
 .delay-100 {
   animation-delay: 0.1s;
 }
 .delay-200 {
   animation-delay: 0.2s;
 }
-
-html {
-  scroll-behavior: smooth;
-}
-
